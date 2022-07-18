@@ -72,17 +72,18 @@ type Good struct {
 	Status        string `json:"status"`
 }
 
-func (n *Ntof) GoodList(id int) ([]*Good, error) {
+func (n *Ntof) GoodList(page, id int) (int, []*Good, error) {
 	var data struct {
 		Total  string  `json:"total"`
 		Offset int     `json:"offset"`
 		Goods  []*Good `json:"goods"`
 	}
-	err := n.client.Get(fmt.Sprintf(BaseURL+GoodListURL+"?page=1&count=100&sid=%d&token=%s", id, n.token), &data)
+	err := n.client.Get(fmt.Sprintf(BaseURL+GoodListURL+"?page=%d&count=100&sid=%d&token=%s", page, id, n.token), &data)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return data.Goods, nil
+	total, _ := strconv.ParseInt(data.Total, 10, 64)
+	return int(total), data.Goods, nil
 }
 
 func (n *Ntof) Buy(showid, gid string, token string) error {
@@ -119,18 +120,26 @@ func main() {
 		players    = make(map[string]int)
 	)
 
-	goods, err := ntof.GoodList(GoodSIdShangWu)
-	if err != nil {
-		log.Println(err)
-		return
+	for _, show := range []int{GoodSIdShangWu, GoodSIdXiaWu} {
+		var page int
+		var getGoods []*Good
+
+		for {
+			page++
+			total, goods, err := ntof.GoodList(page, show)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			getGoods = append(getGoods, goods...)
+			allGoods = append(allGoods, goods...)
+
+			if len(getGoods) >= total {
+				break
+			}
+		}
 	}
-	allGoods = append(allGoods, goods...)
-	goods, err = ntof.GoodList(GoodSIdXiaWu)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	allGoods = append(allGoods, goods...)
 
 	for _, good := range allGoods {
 		if _, ok := players[good.OwnUname]; !ok {
@@ -144,22 +153,23 @@ func main() {
 		initialCap += ori
 	}
 
-	fmt.Println("Initial:", initialCap)
-	fmt.Println("MarketCap:", marketCap)
-	fmt.Println("Players:", len(players))
-
 	for player, amount := range players {
 		fmt.Println(fmt.Sprintf("%s: %d", player, amount))
 	}
+
+	fmt.Println(fmt.Sprintf("Initial: %.2f", initialCap))
+	fmt.Println(fmt.Sprintf("MarketCap: %.2f", marketCap))
+	fmt.Println("Players: ", len(players))
+	fmt.Println("Goods Count: ", len(allGoods))
 
 	if os.Getenv("RUN") == "1" {
 		runJob()
 	}
 
-	ntof.cron.AddFunc("55 29 11 * * *", runJob)
-	ntof.cron.AddFunc("55 59 14 * * *", runJob)
-	ntof.cron.Start()
-	defer ntof.cron.Stop()
+	//ntof.cron.AddFunc("55 29 11 * * *", runJob)
+	//ntof.cron.AddFunc("55 59 14 * * *", runJob)
+	//ntof.cron.Start()
+	//defer ntof.cron.Stop()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
@@ -188,7 +198,7 @@ func runJob() {
 		sid = GoodSIdXiaWu
 	}
 
-	goods, err := ntof.GoodList(sid)
+	_, goods, err := ntof.GoodList(1, sid)
 	if err != nil {
 		log.Println(err)
 		return
