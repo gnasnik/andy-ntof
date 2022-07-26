@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/robfig/cron/v3"
+	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"os"
 	"os/signal"
@@ -16,12 +18,19 @@ type Ntof struct {
 	token  string
 	cron   *cron.Cron
 	client *Client
+	db     *mongo.Client
 }
 
 func newNtof() *Ntof {
+	db, err := newDB()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	return &Ntof{
 		cron:   cron.New(cron.WithSeconds()),
 		client: NewClient(),
+		db:     db,
 	}
 }
 
@@ -67,6 +76,7 @@ type Good struct {
 	GDes          string `json:"gdes"`
 	GStatus       string `json:"gstatus"` // 1 卖光了
 	OwnUname      string `json:"ownuname"`
+	OwnUID        string `json:"ownuid"`
 	OnSale        string `json:"onsale"`
 	SName         string `json:"sname"`
 	Status        string `json:"status"`
@@ -78,7 +88,8 @@ func (n *Ntof) GoodList(page, id int) (int, []*Good, error) {
 		Offset int     `json:"offset"`
 		Goods  []*Good `json:"goods"`
 	}
-	err := n.client.Get(fmt.Sprintf(BaseURL+GoodListURL+"?page=%d&count=100&sid=%d&token=%s", page, id, n.token), &data)
+	queryUrl := fmt.Sprintf(BaseURL+GoodListURL+"?page=%d&count=100&sid=%d&token=%s", page, id, n.token)
+	err := n.client.Get(queryUrl, &data)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -104,6 +115,15 @@ func (n *Ntof) Buy(showid, gid string, token string) error {
 
 var ntof *Ntof
 
+type player struct {
+	Id        string
+	Name      string
+	Count     int
+	Asset     float64
+	Date      string
+	CreatedAt time.Time
+}
+
 func main() {
 	ntof = newNtof()
 	username := os.Getenv("USER")
@@ -117,7 +137,8 @@ func main() {
 		allGoods   []*Good
 		initialCap float64
 		marketCap  float64
-		players    = make(map[string]int)
+		players    = make(map[string]*player)
+		filtter    = make(map[string]struct{})
 	)
 
 	for _, show := range []int{GoodSIdShangWu, GoodSIdXiaWu} {
@@ -142,25 +163,62 @@ func main() {
 	}
 
 	for _, good := range allGoods {
-		if _, ok := players[good.OwnUname]; !ok {
-			players[good.OwnUname] = 0
+		_, fok := filtter[good.Id]
+		if fok {
+			continue
 		}
-		players[good.OwnUname]++
+		filtter[good.Id] = struct{}{}
+
+		_, ok := players[good.OwnUname]
+		if !ok {
+			players[good.OwnUname] = &player{
+				Id:   good.OwnUID,
+				Name: good.OwnUname,
+				Date: time.Now().Format("20060102"),
+			}
+		}
+
+		if good.OwnUname == "kin01" {
+			fmt.Println(good)
+		}
 
 		ori, _ := strconv.ParseFloat(good.OriginalPrice, 10)
 		cur, _ := strconv.ParseFloat(good.CurPrice, 10)
 		marketCap += cur
 		initialCap += ori
+		players[good.OwnUname].Asset += cur
+		players[good.OwnUname].Count++
 	}
 
-	for player, amount := range players {
-		fmt.Println(fmt.Sprintf("%s: %d", player, amount))
+	var finalPLayers []*player
+	for _, player := range players {
+		finalPLayers = append(finalPLayers, player)
+		//fmt.Println(fmt.Sprintf("%s: %d:  %.2f", name, player.Count, player.Asset))
+	}
+
+	UpsertPlayer(context.Background(), Players(ntof.db), finalPLayers)
+
+	sort.Slice(finalPLayers, func(i, j int) bool {
+		return finalPLayers[i].Asset > finalPLayers[j].Asset
+	})
+
+	for _, player := range finalPLayers {
+		fmt.Println(fmt.Sprintf("%s: %d:  %.2f", player.Name, player.Count, player.Asset))
 	}
 
 	fmt.Println(fmt.Sprintf("Initial: %.2f", initialCap))
 	fmt.Println(fmt.Sprintf("MarketCap: %.2f", marketCap))
 	fmt.Println("Players: ", len(players))
 	fmt.Println("Goods Count: ", len(allGoods))
+
+	UpsertStats(context.Background(), Stats(ntof.db), &stats{
+		InitialCap: initialCap,
+		MarketCap:  marketCap,
+		Players:    len(players),
+		GoodCount:  len(allGoods),
+		Date:       time.Now().Format("20060102"),
+		CreatedAt:  time.Now(),
+	})
 
 	if os.Getenv("RUN") == "1" {
 		runJob()
