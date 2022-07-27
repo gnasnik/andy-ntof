@@ -85,3 +85,33 @@ func UpsertStats(ctx context.Context, c *mongo.Collection, stats *stats) error {
 	}
 	return nil
 }
+
+func GetPlayers(ctx context.Context, c *mongo.Collection) ([]*player, error) {
+	opt := options.Find().SetSort(bson.D{{"asset", -1}}).SetLimit(20)
+	rs, err := c.Find(ctx, bson.D{}, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	var players []*player
+	if err := rs.All(ctx, &players); err != nil {
+		return nil, err
+	}
+
+	return players, nil
+}
+
+func GetStats(ctx context.Context, c *mongo.Collection) ([]*stats, error) {
+	opt := options.Find().SetSort(bson.D{{"asset", -1}}).SetLimit(20)
+	rs, err := c.Find(ctx, bson.D{}, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	var stats []*stats
+	if err := rs.All(ctx, &stats); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}

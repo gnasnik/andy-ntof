@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
+	"net/http"
 	"os"
-	"os/signal"
 	"sort"
 	"strconv"
-	"syscall"
 	"time"
 )
 
@@ -133,6 +133,62 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	if os.Getenv("RUN") == "1" {
+		runJob()
+	}
+
+	runStats()
+
+	ntof.cron.AddFunc("0 0 16 * * *", runStats)
+	ntof.cron.Start()
+	defer ntof.cron.Stop()
+
+	r := gin.Default()
+	r.GET("/players", handleGetPlayers)
+	r.GET("/stats", handleStats)
+	r.Run(":3000")
+}
+
+func handleGetPlayers(c *gin.Context) {
+	players, err := GetPlayers(context.Background(), Players(ntof.db))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, nil)
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"data": map[string]interface{}{
+			"players": players,
+		},
+	})
+}
+
+func handleStats(c *gin.Context) {
+	stats, err := GetStats(context.Background(), Stats(ntof.db))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, nil)
+	}
+
+	var (
+		label []string
+		value []float64
+	)
+
+	for _, stat := range stats {
+		label = append(label, stat.Date)
+		value = append(value, stat.MarketCap)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"data": map[string]interface{}{
+			"stats": stats,
+			"label": label,
+			"value": value,
+		},
+	})
+}
+
+func runStats() {
 	var (
 		allGoods   []*Good
 		initialCap float64
@@ -206,11 +262,6 @@ func main() {
 		fmt.Println(fmt.Sprintf("%s: %d:  %.2f", player.Name, player.Count, player.Asset))
 	}
 
-	fmt.Println(fmt.Sprintf("Initial: %.2f", initialCap))
-	fmt.Println(fmt.Sprintf("MarketCap: %.2f", marketCap))
-	fmt.Println("Players: ", len(players))
-	fmt.Println("Goods Count: ", len(allGoods))
-
 	UpsertStats(context.Background(), Stats(ntof.db), &stats{
 		InitialCap: initialCap,
 		MarketCap:  marketCap,
@@ -220,24 +271,10 @@ func main() {
 		CreatedAt:  time.Now(),
 	})
 
-	if os.Getenv("RUN") == "1" {
-		runJob()
-	}
-
-	//ntof.cron.AddFunc("55 29 11 * * *", runJob)
-	//ntof.cron.AddFunc("55 59 14 * * *", runJob)
-	//ntof.cron.Start()
-	//defer ntof.cron.Stop()
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
-
-	select {
-	case sig := <-sigChan:
-		fmt.Println("received shutdown", "signal", sig)
-	}
-
-	fmt.Println("Graceful shutdown successful")
+	fmt.Println(fmt.Sprintf("Initial: %.2f", initialCap))
+	fmt.Println(fmt.Sprintf("MarketCap: %.2f", marketCap))
+	fmt.Println("Players: ", len(players))
+	fmt.Println("Goods Count: ", len(allGoods))
 }
 
 func runJob() {
