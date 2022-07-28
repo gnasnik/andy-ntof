@@ -109,7 +109,6 @@ func (n *Ntof) Buy(showid, gid string, token string) error {
 		return err
 	}
 
-	fmt.Println("buy response", out)
 	return nil
 }
 
@@ -139,6 +138,8 @@ func main() {
 
 	runStats()
 
+	ntof.cron.AddFunc("0 29 11 * * *", runJob)
+	ntof.cron.AddFunc("0 59 14 * * *", runJob)
 	ntof.cron.AddFunc("0 0 16 * * *", runStats)
 	ntof.cron.Start()
 	defer ntof.cron.Stop()
@@ -285,8 +286,6 @@ func runJob() {
 		log.Fatalln(err)
 	}
 
-	var start = time.Now()
-
 	sid := GoodSIdShangWu
 	hour := time.Now().Hour()
 	if hour > 12 {
@@ -305,25 +304,58 @@ func runJob() {
 		return cur1 > cur2
 	})
 
-	for {
-		for _, good := range goods {
-			// 卖光了
-			if good.GStatus != "7" {
-				continue
-			}
-
-			go func() {
-				err := ntof.Buy(strconv.Itoa(sid), good.Id, ntof.token)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}()
-		}
-
-		time.Sleep(50 * time.Millisecond)
-		if time.Now().After(start.Add(1 * time.Minute)) {
-			fmt.Println("timeout exit")
+	var success, count int
+	for _, good := range goods {
+		if success >= 2 {
+			log.Println("抢到了两个了")
 			break
 		}
+
+		if count >= 10 {
+			log.Println("已经抢了10次了")
+			break
+		}
+
+		// 卖光了
+		if good.GStatus != "7" {
+			continue
+		}
+
+		cur, _ := strconv.ParseFloat(good.CurPrice, 10)
+		if cur > 30000 {
+			continue
+		}
+
+		count++
+		err := ntof.Buy(strconv.Itoa(sid), good.Id, ntof.token)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		success++
 	}
+
+	//var start = time.Now()
+	//for {
+	//	for _, good := range goods {
+	//		// 卖光了
+	//		if good.GStatus != "7" {
+	//			continue
+	//		}
+	//
+	//		go func() {
+	//			err := ntof.Buy(strconv.Itoa(sid), good.Id, ntof.token)
+	//			if err != nil {
+	//				fmt.Println(err)
+	//			}
+	//		}()
+	//	}
+	//
+	//	time.Sleep(50 * time.Millisecond)
+	//	if time.Now().After(start.Add(1 * time.Minute)) {
+	//		fmt.Println("timeout exit")
+	//		break
+	//	}
+	//}
 }

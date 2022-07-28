@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-resty/resty/v2"
-	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -107,7 +106,6 @@ func decodeResponse(in []byte, out interface{}) error {
 	//	log.Println(ret.Message)
 	//}
 	if ret.Res != "succ" {
-		log.Println(ret.ErrData)
 		return errors.New(ret.ErrData)
 	}
 
