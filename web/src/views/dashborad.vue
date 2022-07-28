@@ -1,5 +1,26 @@
 <template>
     <div id="app-container">
+    <el-row style="text-align:left;margin: 0 0 20px;">
+      <el-card style="padding: 20px 20px" shadow="never">
+        <el-col :xs="12" :sm="16" :md="8" :lg="8" :xl="8">
+          <label class="label">参与人数</label>
+          <div class="value">
+            <span>{{stat.Players}}</span>
+        </div>
+        </el-col>
+        <el-col :xs="12" :sm="16" :md="8" :lg="8" :xl="8">
+          <label class="label">商品数量</label>
+          <div class="value">
+            <span>{{stat.GoodCount}}</span>
+          </div>
+
+        </el-col>
+        <el-col :xs="12" :sm="16" :md="8" :lg="8" :xl="8">
+          <label class="label">市值</label>
+          <div class="value"> {{stat.MarketCap.toFixed(2)}} </div>
+        </el-col>
+      </el-card>
+    </el-row>        
         <el-card>
             <linechart :chartData="chartData"></linechart>
         </el-card>
@@ -39,6 +60,7 @@ export default {
   components: { linechart },
   data() {
       return {
+          stat: undefined,
           dataList:[],
           chartData: {
               label: [],
@@ -60,6 +82,7 @@ export default {
                   this.chartData.label = res.data.label
                   this.chartData.data.players = res.data.players
                   this.chartData.data.cap = res.data.cap
+                  this.stat = res.data.stats[res.data.stats.length-1]
               }
           })
       },
@@ -74,3 +97,20 @@ export default {
     
 }
 </script>
+
+<style lang="css" scoped>
+  .label {
+    color: #3f475a;
+    font-size: 18px;
+    letter-spacing: -.5px;
+    line-height: 24px;
+    font-weight: lighter;
+  }
+
+  .value {
+    color: #1f2533;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 40px;
+  }
+</style>

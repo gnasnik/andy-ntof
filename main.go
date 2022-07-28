@@ -140,7 +140,7 @@ func main() {
 	//runStats()
 
 	ntof.cron.AddFunc("0 29 11 * * *", runJob)
-	ntof.cron.AddFunc("0 59 14 * * *", runJob)
+	//ntof.cron.AddFunc("0 59 14 * * *", runJob)
 	ntof.cron.AddFunc("0 0 16 * * *", runStats)
 	ntof.cron.Start()
 	defer ntof.cron.Stop()
@@ -345,6 +345,7 @@ func runJob() {
 		}
 
 		success++
+		log.Println("抢到了")
 	}
 
 	//var start = time.Now()
