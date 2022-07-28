@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -136,7 +137,7 @@ func main() {
 		runJob()
 	}
 
-	runStats()
+	//runStats()
 
 	ntof.cron.AddFunc("0 29 11 * * *", runJob)
 	ntof.cron.AddFunc("0 59 14 * * *", runJob)
@@ -144,7 +145,14 @@ func main() {
 	ntof.cron.Start()
 	defer ntof.cron.Stop()
 
-	r := gin.Default()
+	r := gin.New()
+	c := cors.DefaultConfig()
+	c.AllowAllOrigins = true
+	c.AllowMethods = []string{"GET", "PUT", "POST", "OPTIONS"}
+	c.AllowHeaders = []string{"*"}
+	c.MaxAge = time.Hour
+	r.Use(cors.New(c))
+
 	r.GET("/players", handleGetPlayers)
 	r.GET("/stats", handleStats)
 	r.Run(":3000")
@@ -170,21 +178,24 @@ func handleStats(c *gin.Context) {
 	}
 
 	var (
-		label []string
-		value []float64
+		label   []string
+		players []int
+		mcap    []float64
 	)
 
 	for _, stat := range stats {
 		label = append(label, stat.Date)
-		value = append(value, stat.MarketCap)
+		players = append(players, stat.Players)
+		mcap = append(mcap, stat.MarketCap)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 0,
 		"data": map[string]interface{}{
-			"stats": stats,
-			"label": label,
-			"value": value,
+			"stats":   stats,
+			"label":   label,
+			"players": players,
+			"cap":     mcap,
 		},
 	})
 }

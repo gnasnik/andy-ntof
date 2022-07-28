@@ -87,7 +87,7 @@ func UpsertStats(ctx context.Context, c *mongo.Collection, stats *stats) error {
 }
 
 func GetPlayers(ctx context.Context, c *mongo.Collection) ([]*player, error) {
-	opt := options.Find().SetSort(bson.D{{"asset", -1}}).SetLimit(20)
+	opt := options.Find().SetSort(bson.D{{"date", -1}, {"asset", -1}}).SetLimit(20)
 	rs, err := c.Find(ctx, bson.D{}, opt)
 	if err != nil {
 		return nil, err
