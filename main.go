@@ -317,52 +317,69 @@ func runJob() {
 
 	log.Println("Max ShangWu: ", maxSW, "Max XiaWu: ", maxXW)
 
-	_, goods, err := ntof.GoodList(1, sid)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	sort.Slice(goods, func(i, j int) bool {
-		cur1, _ := strconv.ParseFloat(goods[i].CurPrice, 10)
-		cur2, _ := strconv.ParseFloat(goods[j].CurPrice, 10)
-		return cur1 > cur2
-	})
-
+	//_, goods, err := ntof.GoodList(1, sid)
+	//if err != nil {
+	//	log.Println(err)
+	//	return
+	//}
+	var page int
+	var getGoods []*Good
 	var success, count int
-	for _, good := range goods {
-		if success >= 2 {
-			log.Println("抢到了两个了")
-			break
-		}
 
-		if count >= 10 {
-			log.Println("已经抢了10次了")
-			break
-		}
-
-		// 卖光了
-		if good.GStatus != "7" {
-			continue
-		}
-
-		cur, _ := strconv.ParseFloat(good.CurPrice, 10)
-		if sid == GoodSIdShangWu && int64(cur) > maxSW {
-			continue
-		}
-		if sid == GoodSIdXiaWu && int64(cur) > maxXW {
-			continue
-		}
-
-		count++
-		err := ntof.Buy(strconv.Itoa(sid), good.Id, ntof.token)
+	for {
+		page++
+		total, goods, err := ntof.GoodList(page, sid)
 		if err != nil {
 			log.Println(err)
-			continue
+			return
 		}
 
-		success++
-		log.Println("抢到了")
+		sort.Slice(goods, func(i, j int) bool {
+			cur1, _ := strconv.ParseFloat(goods[i].CurPrice, 10)
+			cur2, _ := strconv.ParseFloat(goods[j].CurPrice, 10)
+			return cur1 > cur2
+		})
+
+		for _, good := range goods {
+			if success >= 2 {
+				log.Println("抢到了两个了")
+				return
+			}
+
+			if count >= 10 {
+				log.Println("已经抢了10次了")
+				return
+			}
+
+			// 卖光了
+			if good.GStatus != "7" {
+				continue
+			}
+
+			cur, _ := strconv.ParseFloat(good.CurPrice, 10)
+			if sid == GoodSIdShangWu && int64(cur) > maxSW {
+				continue
+			}
+			if sid == GoodSIdXiaWu && int64(cur) > maxXW {
+				continue
+			}
+
+			count++
+			err := ntof.Buy(strconv.Itoa(sid), good.Id, ntof.token)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			success++
+			log.Println("抢到了")
+		}
+
+		getGoods = append(getGoods, goods...)
+
+		if len(getGoods) >= total {
+			break
+		}
 	}
 
 	//var start = time.Now()
