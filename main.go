@@ -303,6 +303,20 @@ func runJob() {
 		sid = GoodSIdXiaWu
 	}
 
+	var (
+		maxSW int64 = 26000
+		maxXW int64 = 10000
+	)
+	if os.Getenv("MAX_SHANGWU") != "" {
+		maxSW, _ = strconv.ParseInt(os.Getenv("MAX_SHANGWU"), 10, 64)
+	}
+
+	if os.Getenv("MAX_XIAWU") != "" {
+		maxXW, _ = strconv.ParseInt(os.Getenv("MAX_XIAWU"), 10, 64)
+	}
+
+	log.Println("Max ShangWu: ", maxSW, "Max XiaWu: ", maxXW)
+
 	_, goods, err := ntof.GoodList(1, sid)
 	if err != nil {
 		log.Println(err)
@@ -333,10 +347,10 @@ func runJob() {
 		}
 
 		cur, _ := strconv.ParseFloat(good.CurPrice, 10)
-		if sid == GoodSIdShangWu && cur > 26000 {
+		if sid == GoodSIdShangWu && int64(cur) > maxSW {
 			continue
 		}
-		if sid == GoodSIdXiaWu && cur > 10000 {
+		if sid == GoodSIdXiaWu && int64(cur) > maxXW {
 			continue
 		}
 
