@@ -137,10 +137,10 @@ func main() {
 		runJob()
 	}
 
-	//runStats()
+	runStats()
 
 	ntof.cron.AddFunc("0 29 11 * * *", runJob)
-	//ntof.cron.AddFunc("0 59 14 * * *", runJob)
+	ntof.cron.AddFunc("0 59 14 * * *", runJob)
 	ntof.cron.AddFunc("0 0 16 * * *", runStats)
 	ntof.cron.Start()
 	defer ntof.cron.Stop()
@@ -333,7 +333,10 @@ func runJob() {
 		}
 
 		cur, _ := strconv.ParseFloat(good.CurPrice, 10)
-		if cur > 30000 {
+		if sid == GoodSIdShangWu && cur > 26000 {
+			continue
+		}
+		if sid == GoodSIdXiaWu && cur > 10000 {
 			continue
 		}
 
