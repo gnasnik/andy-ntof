@@ -195,8 +195,16 @@ func handleStats(c *gin.Context) {
 }
 
 func runStats() {
-	username := os.Getenv("USER")
-	password := os.Getenv("PASSWORD")
+	username := os.Getenv("USER1")
+	password := os.Getenv("PASSWORD1")
+
+	if username == "" {
+		username = os.Getenv("USER")
+	}
+	if password == "" {
+		password = os.Getenv("PASSWORD")
+	}
+
 	err := ntof.Login(username, password)
 	if err != nil {
 		log.Fatalln(err)
