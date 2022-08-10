@@ -37,6 +37,10 @@
                     prop="Name"
                     label="姓名"
                     >
+                  <template slot-scope="scope">
+                    {{ scope.row.Name }}
+                    <el-tag v-if="scope.row.isVIP" type="danger" size="mini"> VIP </el-tag>
+                  </template>
                 </el-table-column>
                 <el-table-column
                     prop="Count"
@@ -69,6 +73,8 @@ export default {
                   cap: []
               },
           },
+          vips: ["芝士", "SXY77","悠悠", "我是陈伟霆","bigdick86", "gk", "水冰月", "小丸子", "旺仔牛奶", "Tiandix", "陈胖子",
+          "呵呵呀呵呵", "Lns", "TAing", "甜甜","windy"],
       }
   },
   created(){
@@ -89,7 +95,13 @@ export default {
       getList() {
           getPlayers().then(res => {
               if (res) {
-                  this.dataList = res.data.players
+                  for (let i = 0; i< res.data.players.length; i++) {
+                      let p = res.data.players[i]
+                      if (this.vips.includes(p.Name)) {
+                         p.isVIP = true
+                      }
+                      this.dataList.push(p)
+                  }
               }
           })
       }

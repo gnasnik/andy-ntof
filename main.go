@@ -126,12 +126,6 @@ type player struct {
 
 func main() {
 	ntof = newNtof()
-	username := os.Getenv("USER")
-	password := os.Getenv("PASSWORD")
-	err := ntof.Login(username, password)
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	if os.Getenv("RUN") == "1" {
 		runJob()
@@ -201,6 +195,13 @@ func handleStats(c *gin.Context) {
 }
 
 func runStats() {
+	username := os.Getenv("USER")
+	password := os.Getenv("PASSWORD")
+	err := ntof.Login(username, password)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	var (
 		allGoods   []*Good
 		initialCap float64
