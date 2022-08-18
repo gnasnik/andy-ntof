@@ -25,6 +25,12 @@
             <linechart :chartData="chartData"></linechart>
         </el-card>
         <el-card style="margin-top: 20px;">
+          <el-tabs v-model="activeName" @tab-click="handleClick">
+            <el-tab-pane label="所有" name="all"></el-tab-pane>
+            <el-tab-pane label="玩家" name="user"></el-tab-pane>
+          </el-tabs>
+            <el-input v-model="name" prefix-icon="el-icon-search" size="small" placeholder="查询玩家名称" v-if="activeName==='user'" @change="getListByUser"></el-input>
+
             <el-table
                 :data="dataList"
                 style="width: 100%">
@@ -59,11 +65,13 @@
 
 <script>
 import linechart from './linechart.vue'
-import { getStats, getPlayers } from '@/api/api'
+import { getStats, getPlayers, getUserList } from '@/api/api'
 export default {
   components: { linechart },
   data() {
       return {
+          name: 'iisutas',
+          activeName: 'all',
           stat: undefined,
           dataList:[],
           chartData: {
@@ -73,8 +81,9 @@ export default {
                   cap: []
               },
           },
-          vips: ["芝士", "SXY77","悠悠", "我是陈伟霆","bigdick86", "gk", "水冰月", "小丸子", "旺仔牛奶", "Tiandix", "陈胖子",
-          "呵呵呀呵呵", "Lns", "TAing", "甜甜","windy"],
+          vips: ["芝士", "SXY77","悠悠", "我是陈伟霆","bigdick86", "gk", "水冰月", "小丸子", "旺仔牛奶", "Tiandix", "陈胖子", "Katrina",
+          "呵呵呀呵呵", "Lns", "TAing", "甜甜","windy", "伟业", "尼古拉斯·广坤", "尼古拉斯·赵四", "一西", "妮9", "木森","Hong", "shaos", 
+	        "黄不了"],
       }
   },
   created(){
@@ -82,6 +91,14 @@ export default {
     this.stats()
   },
   methods:{
+      handleClick(tab) {
+        if (tab.name === 'user') {
+           this.getListByUser()
+        }else {
+          this.getList()
+        }
+
+      },
       stats(){
           getStats({}).then(res =>{
               if (res) {
@@ -93,6 +110,7 @@ export default {
           })
       },
       getList() {
+          this.dataList = []
           getPlayers().then(res => {
               if (res) {
                   for (let i = 0; i< res.data.players.length; i++) {
@@ -104,6 +122,17 @@ export default {
                   }
               }
           })
+      },
+      getListByUser(){
+        if (this.name === '') {
+          return
+        }
+
+        getUserList({name:this.name}).then( res => {
+          if (res) {
+            this.dataList = res.data.list
+          }
+        })
       }
   }
     

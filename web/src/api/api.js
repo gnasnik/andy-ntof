@@ -15,3 +15,11 @@ export function getPlayers(query) {
         params: query,
     })
 }
+
+export function getUserList(query) {
+    return requset({
+        url: '/list',
+        method:'get',
+        params: query,
+    })
+}
