@@ -115,3 +115,18 @@ func GetStats(ctx context.Context, c *mongo.Collection) ([]*stats, error) {
 
 	return stats, nil
 }
+
+func GetPlayerListByName(ctx context.Context, name string, c *mongo.Collection) ([]*player, error) {
+	opt := options.Find().SetSort(bson.D{{"date", -1}, {"asset", -1}}).SetLimit(20)
+	rs, err := c.Find(ctx, bson.D{{"name", name}}, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	var players []*player
+	if err := rs.All(ctx, &players); err != nil {
+		return nil, err
+	}
+
+	return players, nil
+}

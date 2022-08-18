@@ -149,6 +149,7 @@ func main() {
 
 	r.GET("/players", handleGetPlayers)
 	r.GET("/stats", handleStats)
+	r.GET("/list", getUserListByName)
 	r.Run(":3000")
 }
 
@@ -190,6 +191,21 @@ func handleStats(c *gin.Context) {
 			"label":   label,
 			"players": players,
 			"cap":     mcap,
+		},
+	})
+}
+
+func getUserListByName(c *gin.Context) {
+	name := c.Request.URL.Query().Get("name")
+	list, err := GetPlayerListByName(context.Background(), name, Players(ntof.db))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, nil)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"data": map[string]interface{}{
+			"list": list,
 		},
 	})
 }
@@ -350,7 +366,12 @@ func runJob() {
 		})
 
 		for _, good := range goods {
-			if success >= 2 {
+			if sid == GoodSIdShangWu && success >= 1 {
+				log.Println("抢到了一个了")
+				return
+			}
+
+			if sid == GoodSIdXiaWu && success >= 2 {
 				log.Println("抢到了两个了")
 				return
 			}
