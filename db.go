@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
+	"sort"
 	"time"
 )
 
@@ -87,7 +88,7 @@ func UpsertStats(ctx context.Context, c *mongo.Collection, stats *stats) error {
 }
 
 func GetPlayers(ctx context.Context, c *mongo.Collection) ([]*player, error) {
-	opt := options.Find().SetSort(bson.D{{"date", -1}, {"asset", -1}}).SetLimit(20)
+	opt := options.Find().SetSort(bson.D{{"date", -1}, {"asset", -1}}).SetLimit(50)
 	rs, err := c.Find(ctx, bson.D{}, opt)
 	if err != nil {
 		return nil, err
@@ -102,7 +103,7 @@ func GetPlayers(ctx context.Context, c *mongo.Collection) ([]*player, error) {
 }
 
 func GetStats(ctx context.Context, c *mongo.Collection) ([]*stats, error) {
-	opt := options.Find().SetSort(bson.D{{"asset", -1}}).SetLimit(20)
+	opt := options.Find().SetSort(bson.D{{"createdat", -1}}).SetLimit(15)
 	rs, err := c.Find(ctx, bson.D{}, opt)
 	if err != nil {
 		return nil, err
@@ -113,11 +114,13 @@ func GetStats(ctx context.Context, c *mongo.Collection) ([]*stats, error) {
 		return nil, err
 	}
 
+	sort.Slice(stats, func(i, j int) bool { return stats[i].CreatedAt.Before(stats[j].CreatedAt) })
+
 	return stats, nil
 }
 
 func GetPlayerListByName(ctx context.Context, name string, c *mongo.Collection) ([]*player, error) {
-	opt := options.Find().SetSort(bson.D{{"date", -1}, {"asset", -1}}).SetLimit(20)
+	opt := options.Find().SetSort(bson.D{{"date", -1}, {"asset", -1}}).SetLimit(15)
 	rs, err := c.Find(ctx, bson.D{{"name", name}}, opt)
 	if err != nil {
 		return nil, err

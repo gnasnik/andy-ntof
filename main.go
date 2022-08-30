@@ -133,8 +133,8 @@ func main() {
 
 	runStats()
 
-	ntof.cron.AddFunc("0 29 11 * * *", runJob)
-	ntof.cron.AddFunc("0 59 14 * * *", runJob)
+	ntof.cron.AddFunc("45 28 11 * * *", runJob)
+//	ntof.cron.AddFunc("0 59 14 * * *", runJob)
 	ntof.cron.AddFunc("0 0 16 * * *", runStats)
 	ntof.cron.Start()
 	defer ntof.cron.Stop()
@@ -366,7 +366,7 @@ func runJob() {
 		})
 
 		for _, good := range goods {
-			if sid == GoodSIdShangWu && success >= 1 {
+			if sid == GoodSIdShangWu && success >= 2 {
 				log.Println("抢到了一个了")
 				return
 			}
